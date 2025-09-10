@@ -91,8 +91,13 @@ func sowSeeds() {
 	for _, plotID := range plotIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/farming/plot/%s/sowing", plotID)
 		data, _ := json.Marshal(map[string]int{"seed_id": 4})
-		makeRequest("Sowing", url, data)
-		time.Sleep(1 * time.Second) // Avoid rate limiting
+		resp := makeRequest("Sowing", url, data)
+		if resp != nil && resp.StatusCode == 429 {
+			fmt.Println("Rate limit hit, waiting 10 seconds before retry...")
+			time.Sleep(10 * time.Second)
+			makeRequest("Sowing", url, data) // Retry once
+		}
+		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
@@ -102,7 +107,7 @@ func claimRewards() {
 	for _, plotID := range plotIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/farming/plot/%s/claim", plotID)
 		makeRequest("Claiming plot", url, nil)
-		time.Sleep(1 * time.Second) // Avoid rate limiting
+		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
@@ -112,7 +117,7 @@ func feedAnimals() {
 	for _, animalID := range animalIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/animal/feed/%s", animalID)
 		makeRequest("Feeding animal", url, nil)
-		time.Sleep(1 * time.Second) // Avoid rate limiting
+		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
@@ -122,7 +127,7 @@ func claimAnimals() {
 	for _, animalID := range animalIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/animal/claim/%s", animalID)
 		makeRequest("Claiming animal", url, nil)
-		time.Sleep(1 * time.Second) // Avoid rate limiting
+		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
@@ -152,7 +157,25 @@ func runAnimalSchedule() {
 	}
 }
 
+// healthCheckHandler responds to /kaihealthcheck with "Ok"
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/kaihealthcheck" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	fmt.Fprint(w, "Ok")
+}
+
 func main() {
+	// Start HTTP server for health check on port 8082
+	go func() {
+		http.HandleFunc("/kaihealthcheck", healthCheckHandler)
+		fmt.Println("Starting health check server on :8082...")
+		if err := http.ListenAndServe(":8082", nil); err != nil {
+			fmt.Printf("Health check server error: %v\n", err)
+		}
+	}()
+
 	// Start animal schedule in a separate goroutine
 	// go runAnimalSchedule()
 
