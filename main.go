@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -50,114 +51,88 @@ var headers = map[string]string{
 	"user-agent":         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 }
 
-// HTTP client with timeout
+// HTTP client
 var client = &http.Client{
-	Timeout: 10 * time.Second,
+	Timeout: 30 * time.Second,
 }
 
-// makeRequest handles HTTP PATCH requests with retries
 func makeRequest(method, url string, data []byte) *http.Response {
-	for attempt := 0; attempt < 3; attempt++ {
-		req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(data))
-		if err != nil {
-			fmt.Printf("Error creating request for %s %s: %v\n", method, url, err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		for key, value := range headers {
-			req.Header.Set(key, value)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			fmt.Printf("Error in %s %s: %v\n", method, url, err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		fmt.Printf("%s %s: Status %d, Response: %s\n", method, url, resp.StatusCode, string(body))
-		return resp
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(data))
+	if err != nil {
+		log.Printf("Error creating request for %s %s: %v", method, url, err)
+		return nil
 	}
-	fmt.Printf("Failed %s %s after 3 attempts\n", method, url)
-	return nil
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error in %s %s: %v", method, url, err)
+		return nil
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	log.Printf("%s %s: Status %d, Response: %s", method, url, resp.StatusCode, string(body))
+	return resp
 }
 
-// sowSeeds sends sowing requests for all plots
 func sowSeeds() {
-	fmt.Println("Starting sowing process...")
+	log.Println("Starting sowing process...")
 	for _, plotID := range plotIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/farming/plot/%s/sowing", plotID)
 		data, _ := json.Marshal(map[string]int{"seed_id": 4})
-		resp := makeRequest("Sowing", url, data)
-		if resp != nil && resp.StatusCode == 429 {
-			fmt.Println("Rate limit hit, waiting 10 seconds before retry...")
-			time.Sleep(10 * time.Second)
-			makeRequest("Sowing", url, data) // Retry once
-		}
-		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
+		makeRequest("Sowing", url, data)
 	}
 }
 
-// claimRewards sends claim requests for all plots
 func claimRewards() {
-	fmt.Println("Starting claim process for plots...")
+	log.Println("Starting claim process for plots...")
 	for _, plotID := range plotIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/farming/plot/%s/claim", plotID)
 		makeRequest("Claiming plot", url, nil)
-		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
-// feedAnimals sends feed requests for all animals
 func feedAnimals() {
-	fmt.Println("Starting feeding process for animals...")
+	log.Println("Starting feeding process for animals...")
 	for _, animalID := range animalIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/animal/feed/%s", animalID)
 		makeRequest("Feeding animal", url, nil)
-		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
-// claimAnimals sends claim requests for all animals
 func claimAnimals() {
-	fmt.Println("Starting claiming process for animals...")
+	log.Println("Starting claiming process for animals...")
 	for _, animalID := range animalIDs {
 		url := fmt.Sprintf("https://service.greenlandgame.xyz/api/v1/animal/claim/%s", animalID)
 		makeRequest("Claiming animal", url, nil)
-		time.Sleep(2 * time.Second) // Increased delay to avoid rate limiting
 	}
 }
 
-// runSchedule handles the plot sowing and claiming cycle
 func runSchedule() {
-	// Print current time in +07:00 timezone
 	ict := time.FixedZone("ICT", 7*3600)
-	currentTime := time.Now().In(ict).Format("2006-01-02 15:04:05 -0700")
-	fmt.Printf("Starting new plot cycle at %s\n", currentTime)
-
+	log.Printf("Starting new plot cycle at %s", time.Now().In(ict).Format("2006-01-02 15:04:05 -0700"))
 	sowSeeds()
-	fmt.Println("Waiting 10 minutes before claiming plots...")
+	log.Println("Waiting 10 minutes before claiming plots...")
 	time.Sleep(10 * time.Minute)
 	claimRewards()
-	fmt.Println("Plot process completed.")
+	log.Println("Plot process completed.")
 }
 
-// runAnimalSchedule handles the animal feeding and claiming cycle
 func runAnimalSchedule() {
 	for {
 		feedAnimals()
-		fmt.Println("Waiting 30 minutes before claiming animals...")
+		log.Println("Waiting 30 minutes before claiming animals...")
 		time.Sleep(30 * time.Minute)
 		claimAnimals()
-		fmt.Println("Animal process completed, waiting 1 second before next cycle...")
+		log.Println("Animal process completed, waiting 1 second before next cycle...")
 		time.Sleep(1 * time.Second)
 	}
 }
 
-// healthCheckHandler responds to /kaihealthcheck with "Ok"
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/kaihealthcheck" {
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -166,23 +141,23 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Ok")
 }
 
+func init() {
+	log.SetFlags(0)
+}
+
 func main() {
-	// Start HTTP server for health check on port 8082
 	go func() {
 		http.HandleFunc("/kaihealthcheck", healthCheckHandler)
-		fmt.Println("Starting health check server on :8082...")
+		log.Println("Starting health check server on :8082...")
 		if err := http.ListenAndServe(":8082", nil); err != nil {
-			fmt.Printf("Health check server error: %v\n", err)
+			log.Printf("Health check server error: %v", err)
 		}
 	}()
 
-	// Start animal schedule in a separate goroutine
 	// go runAnimalSchedule()
-
-	// Run plot schedule in main goroutine
 	for {
 		runSchedule()
-		fmt.Println("Waiting 1 second before next plot cycle...")
+		log.Println("Waiting 1 second before next plot cycle...")
 		time.Sleep(1 * time.Second)
 	}
 }
