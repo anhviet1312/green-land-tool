@@ -36,7 +36,7 @@ var animalIDs = []string{
 var headers = map[string]string{
 	"accept":             "application/json, text/plain, */*",
 	"accept-language":    "vi,vi-VN;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5",
-	"authorization":      "\ntma query_id=AAHxAvVhAgAAAPEC9WHA_5JW&user=%7B%22id%22%3A5938414321%2C%22first_name%22%3A%22Viet%22%2C%22last_name%22%3A%22Hoang%22%2C%22username%22%3A%22anhviet1312%22%2C%22language_code%22%3A%22vi%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F-2xihp_MFnFSH6TKZdZ3Nj82iZYhRRvGjU81vnswwa1UZrJlKJmuKbO-nhDjad3E.svg%22%7D&auth_date=1757384377&signature=MQjBjAeal6SwWSGHoPSd3uU59QgpksF4LX75bBhjNyO1KCG4t7-md3T_w5jhXLTWUTj4d9lKOIqPbfG3cdD5AA&hash=b22678be7f67feb56bd1871bbd57f121d22a35e3d054a6efe9ea95d262c4b946",
+	"authorization":      "tma query_id=AAHxAvVhAgAAAPEC9WH-NwCF&user=%7B%22id%22%3A5938414321%2C%22first_name%22%3A%22Viet%22%2C%22last_name%22%3A%22Hoang%22%2C%22username%22%3A%22anhviet1312%22%2C%22language_code%22%3A%22vi%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F-2xihp_MFnFSH6TKZdZ3Nj82iZYhRRvGjU81vnswwa1UZrJlKJmuKbO-nhDjad3E.svg%22%7D&auth_date=1757477764&signature=e40IXhJc6CMv_8usvVVGZd9gorMlpVZcQJV5GTZnMIBBCOH3G81KPtw_5GeJDh-S2vmGHlAE55X1v440x3q2BA&hash=5bd0b723ec80032e79d6bd3b4b030ca6c2379d4a490a1f8ec3f5768e37d0209c",
 	"content-type":       "application/json",
 	"origin":             "https://clf.greenlandgame.xyz",
 	"priority":           "u=1, i",
